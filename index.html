@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบนับรถประจำหน่วยงาน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            font-family: 'Sarabun', sans-serif;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-shadow {
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        }
+        
+        .camera-preview {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+        }
+        
+        .zone-badge {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        }
+        
+        .sticker-badge {
+            background: linear-gradient(45deg, #00d2d3, #54a0ff);
+        }
+        
+        .no-sticker-badge {
+            background: linear-gradient(45deg, #ff9ff3, #f368e0);
+        }
+        
+        .loading {
+            display: none;
+        }
+        
+        .loading.show {
+            display: flex;
+        }
+        
+        /* Mobile-first optimizations */
+        .mobile-card {
+            min-height: 120px;
+            touch-action: manipulation;
+        }
+        
+        .mobile-button {
+            min-height: 48px;
+            touch-action: manipulation;
+        }
+        
+        .mobile-input {
+            min-height: 48px;
+            font-size: 16px; /* Prevents zoom on iOS */
+        }
+        
+        .safe-area-top {
+            padding-top: env(safe-area-inset-top);
+        }
+        
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* Smooth scrolling */
+        .scroll-container {
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+        
+        /* Better touch targets */
+        .touch-target {
+            min-width: 44px;
+            min-height: 44px;
+        }
+        
+        /* Responsive text */
+        @media (max-width: 375px) {
+            .text-responsive {
+                font-size: 0.875rem;
+            }
+        }
+        
+        /* Prevent horizontal scroll */
+        .container-mobile {
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+        
+        /* Enhanced button feedback */
+        .btn-mobile {
+            transition: all 0.15s ease;
+            transform: scale(1);
+        }
+        
+        .btn-mobile:active {
+            transform: scale(0.98);
+        }
+        
+        /* Status bar safe area */
+        .header-mobile {
+            padding-top: max(env(safe-area-inset-top), 16px);
+        }
+        
+        /* Bottom navigation safe area */
+        .bottom-mobile {
+            padding-bottom: max(env(safe-area-inset-bottom), 16px);
+        }
+    </style>
+</head>
+<body class="bg-white">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center">
+        <div class="bg-white rounded-3xl p-6 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-gray-600">กำลังประมวลผล...</p>
+        </div>
+    </div>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen gradient-bg flex items-center justify-center p-4 safe-area-top safe-area-bottom">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm card-shadow container-mobile">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mx-auto mb-3 flex items-center justify-center shadow-lg">
+                    <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+                        <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1V8a1 1 0 00-1-1h-3z"/>
+                    </svg>
+                </div>
+                <h1 class="text-xl font-bold text-gray-800 mb-2 text-responsive">ระบบนับรถประจำหน่วยงาน</h1>
+                <p class="text-gray-600 text-sm">เข้าสู่ระบบเพื่อเริ่มใช้งาน</p>
+            </div>
+            
+            <div class="space-y-4">
+                <input type="text" id="username" placeholder="ชื่อผู้ใช้" class="w-full mobile-input p-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="password" id="password" placeholder="รหัสผ่าน" class="w-full mobile-input p-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                
+                <div class="space-y-3">
+                    <button onclick="login('employee')" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white mobile-button p-4 rounded-2xl font-semibold btn-mobile shadow-lg hover:shadow-xl transition-all">
+                        👤 พนักงาน
+                    </button>
+                    <button onclick="login('admin')" class="w-full bg-gradient-to-r from-indigo-600 to-purple-700 text-white mobile-button p-4 rounded-2xl font-semibold btn-mobile shadow-lg hover:shadow-xl transition-all">
+                        ⚙️ ผู้ดูแลระบบ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="hidden min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <!-- Header -->
+        <div class="gradient-bg text-white sticky top-0 z-50 header-mobile">
+            <div class="flex items-center justify-between p-4">
+                <div>
+                    <h1 class="text-lg font-bold text-responsive">ระบบนับรถ</h1>
+                    <p class="text-xs opacity-90" id="userRole">พนักงาน</p>
+                </div>
+                <button onclick="logout()" class="bg-white bg-opacity-20 p-3 rounded-full touch-target btn-mobile">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Menu Navigation -->
+        <div id="mainMenu" class="p-4 bg-gradient-to-br from-white to-slate-50 bottom-mobile scroll-container">
+            <div class="grid grid-cols-2 gap-3 max-w-sm mx-auto">
+                <button onclick="showMainSection('dashboard')" class="nav-card bg-gradient-to-br from-blue-500 to-blue-600 text-white mobile-card p-4 rounded-3xl shadow-lg hover:shadow-xl text-center btn-mobile transition-all">
+                    <div class="text-3xl mb-2">📊</div>
+                    <div class="font-semibold text-sm">แดชบอร์ด</div>
+                    <div class="text-xs opacity-90">ภาพรวมระบบ</div>
+                </button>
+                
+                <button onclick="showZoneSelection()" class="nav-card bg-gradient-to-br from-emerald-500 to-teal-600 text-white mobile-card p-4 rounded-3xl shadow-lg hover:shadow-xl text-center btn-mobile transition-all">
+                    <div class="text-3xl mb-2">📝</div>
+                    <div class="font-semibold text-sm">บันทึกรถ</div>
+                    <div class="text-xs opacity-90">เพิ่มข้อมูลใหม่</div>
+                </button>
+                
+                <button onclick="showMainSection('history')" class="nav-card bg-gradient-to-br from-purple-500 to-indigo-600 text-white mobile-card p-4 rounded-3xl shadow-lg hover:shadow-xl text-center btn-mobile transition-all">
+                    <div class="text-3xl mb-2">📋</div>
+                    <div class="font-semibold text-sm">ประวัติ</div>
+                    <div class="text-xs opacity-90">ดูข้อมูลเก่า</div>
+                </button>
+                
+                <button onclick="showMainSection('stats')" class="nav-card bg-gradient-to-br from-rose-500 to-pink-600 text-white mobile-card p-4 rounded-3xl shadow-lg hover:shadow-xl text-center btn-mobile transition-all">
+                    <div class="text-3xl mb-2">📈</div>
+                    <div class="font-semibold text-sm">สถิติ</div>
+                    <div class="text-xs opacity-90">วิเคราะห์ข้อมูล</div>
+                </button>
+                
+                <button onclick="showMainSection('admin')" id="adminTab" class="nav-card bg-gradient-to-br from-slate-600 to-slate-700 text-white mobile-card p-4 rounded-3xl shadow-lg hover:shadow-xl text-center btn-mobile transition-all hidden col-span-2">
+                    <div class="text-3xl mb-2">⚙️</div>
+                    <div class="font-semibold text-sm">จัดการระบบ</div>
+                    <div class="text-xs opacity-90">สำหรับผู้ดูแล</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Zone Selection Screen -->
+        <div id="zoneSelection" class="hidden">
+            <!-- Back Button Header -->
+            <div class="bg-white border-b border-gray-200 p-4 flex items-center">
+                <button onclick="backToMainMenu()" class="mr-3 p-2 rounded-full hover:bg-gray-100 touch-target btn-mobile">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div class="flex-1">
+                    <h2 class="text-base font-semibold text-gray-800 text-responsive">เลือกโซนที่ต้องการบันทึก</h2>
+                    <p class="text-xs text-gray-500">กรุณาเลือกโซนก่อนเริ่มบันทึกข้อมูล</p>
+                </div>
+            </div>
+            
+            <!-- Zone Cards -->
+            <div class="p-4 space-y-3 bottom-mobile scroll-container" id="zoneCards">
+                <!-- Zone cards will be populated here -->
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboardSection" class="hidden">
+            <!-- Back Button Header -->
+            <div class="bg-white border-b border-gray-200 p-4 flex items-center">
+                <button onclick="backToMainMenu()" class="mr-4 p-2 rounded-full hover:bg-gray-100 touch-target btn-mobile">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800">แดชบอร์ด</h2>
+                    <p class="text-sm text-gray-500">ภาพรวมข้อมูลระบบ</p>
+                </div>
+            </div>
+            
+            <div class="p-4 space-y-4 bottom-mobile scroll-container">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-3xl shadow-lg">
+                        <div class="text-3xl font-bold" id="totalCars">0</div>
+                        <div class="text-sm opacity-90">รถทั้งหมดวันนี้</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-6 rounded-3xl shadow-lg">
+                        <div class="text-3xl font-bold" id="stickerCars">0</div>
+                        <div class="text-sm opacity-90">รถมีสติกเกอร์</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl p-6 card-shadow">
+                    <h3 class="text-lg font-semibold mb-4">โซนที่ดูแล</h3>
+                    <div class="grid grid-cols-2 gap-3" id="zonesList">
+                        <div class="bg-gradient-to-br from-purple-500 to-indigo-600 text-white p-4 rounded-2xl text-center shadow-md">
+                            <div class="font-semibold">ลานจอดชั้น 1</div>
+                            <div class="text-sm opacity-90">15 คัน</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-4 rounded-2xl text-center shadow-md">
+                            <div class="font-semibold">ประตูหน้า</div>
+                            <div class="text-sm opacity-90">8 คัน</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl p-6 card-shadow">
+                    <h3 class="text-lg font-semibold mb-4">กิจกรรมล่าสุด</h3>
+                    <div class="space-y-3" id="recentActivity">
+                        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-2xl">
+                            <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium">รถส่งอาหาร เข้า</div>
+                                <div class="text-sm text-gray-500">ลานจอดชั้น 1 • 10:30</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Record Section -->
+        <div id="recordSection" class="hidden">
+            <!-- Back Button Header -->
+            <div class="bg-white border-b border-gray-200 p-4 flex items-center">
+                <button onclick="backToZoneSelection()" class="mr-3 p-2 rounded-full hover:bg-gray-100 touch-target btn-mobile">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div class="flex-1">
+                    <h2 class="text-base font-semibold text-gray-800 text-responsive">บันทึกรถ - <span id="selectedZoneName">โซน</span></h2>
+                    <p class="text-xs text-gray-500">กรอกข้อมูลรถที่พบในโซนนี้</p>
+                </div>
+            </div>
+            
+            <div class="p-4 space-y-4 bottom-mobile scroll-container">
+                <div class="bg-white rounded-3xl p-4 card-shadow max-w-sm mx-auto">
+                    <div class="space-y-4">
+                        <!-- Hidden zone input -->
+                        <input type="hidden" id="selectedZoneId" value="">
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">ประเภทรถ</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="selectVehicleType('car')" class="vehicle-type-btn mobile-button p-3 border-2 border-gray-200 rounded-2xl text-center hover:border-blue-500 transition-colors btn-mobile text-sm">
+                                🚗 รถยนต์
+                            </button>
+                            <button onclick="selectVehicleType('motorcycle')" class="vehicle-type-btn mobile-button p-3 border-2 border-gray-200 rounded-2xl text-center hover:border-blue-500 transition-colors btn-mobile text-sm">
+                                🏍️ รถจักรยานยนต์
+                            </button>
+                            <button onclick="selectVehicleType('delivery')" class="vehicle-type-btn mobile-button p-3 border-2 border-gray-200 rounded-2xl text-center hover:border-blue-500 transition-colors btn-mobile text-sm">
+                                🚚 รถส่งของ
+                            </button>
+                            <button onclick="selectVehicleType('food')" class="vehicle-type-btn mobile-button p-3 border-2 border-gray-200 rounded-2xl text-center hover:border-blue-500 transition-colors btn-mobile text-sm">
+                                🍕 รถส่งอาหาร
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">สติกเกอร์</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="selectSticker(true)" class="sticker-btn sticker-badge text-white mobile-button p-3 rounded-2xl text-center font-medium btn-mobile text-sm">
+                                ✅ มีสติกเกอร์
+                            </button>
+                            <button onclick="selectSticker(false)" class="sticker-btn no-sticker-badge text-white mobile-button p-3 rounded-2xl text-center font-medium btn-mobile text-sm">
+                                ❌ ไม่มีสติกเกอร์
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">ถ่ายภาพ</label>
+                        <div class="camera-preview btn-mobile" onclick="takePhoto()">
+                            <div class="text-center">
+                                <svg class="w-10 h-10 text-gray-400 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                                </svg>
+                                <p class="text-gray-500 text-sm">แตะเพื่อถ่ายภาพ</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">หมายเหตุ</label>
+                        <textarea id="notes" placeholder="หมายเหตุเพิ่มเติม..." class="w-full mobile-input p-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 h-20 resize-none"></textarea>
+                    </div>
+
+                        <button onclick="saveRecord()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white mobile-button p-4 rounded-2xl font-semibold btn-mobile shadow-lg hover:shadow-xl transition-all">
+                            💾 บันทึกข้อมูล
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div id="historySection" class="hidden">
+            <!-- Back Button Header -->
+            <div class="bg-white border-b border-gray-200 p-4 flex items-center">
+                <button onclick="backToMainMenu()" class="mr-4 p-2 rounded-full hover:bg-gray-100 touch-target btn-mobile">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800">ประวัติการบันทึก</h2>
+                    <p class="text-sm text-gray-500">ดูข้อมูลการบันทึกย้อนหลัง</p>
+                </div>
+            </div>
+            
+            <div class="p-4 space-y-4 bottom-mobile scroll-container">
+                <div class="bg-white rounded-3xl p-6 card-shadow">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">รายการบันทึก</h3>
+                        <input type="date" id="historyDate" class="p-2 border border-gray-200 rounded-xl text-sm" onchange="filterHistory()">
+                    </div>
+                
+                <div class="space-y-3" id="historyList">
+                    <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl">
+                        <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                            🚗
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium">รถยนต์ - มีสติกเกอร์</div>
+                            <div class="text-sm text-gray-500">ลานจอดชั้น 1 • 14:30 • โดย admin</div>
+                        </div>
+                        <button onclick="viewPhoto(1)" class="bg-blue-500 text-white p-2 rounded-xl">
+                            📷
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl">
+                        <div class="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
+                            🍕
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium">รถส่งอาหาร - ไม่มีสติกเกอร์</div>
+                            <div class="text-sm text-gray-500">ประตูหน้า • 12:15 • โดย พนักงาน</div>
+                        </div>
+                        <button onclick="viewPhoto(2)" class="bg-blue-500 text-white p-2 rounded-xl">
+                            📷
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div id="statsSection" class="hidden">
+            <!-- Back Button Header -->
+            <div class="bg-white border-b border-gray-200 p-4 flex items-center">
+                <button onclick="backToMainMenu()" class="mr-4 p-2 rounded-full hover:bg-gray-100 touch-target btn-mobile">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800">สถิติและรายงาน</h2>
+                    <p class="text-sm text-gray-500">วิเคราะห์ข้อมูลการบันทึกรถ</p>
+                </div>
+            </div>
+            
+            <div class="p-4 space-y-4 bottom-mobile scroll-container">
+                <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white rounded-3xl p-6 card-shadow text-center">
+                    <div class="text-3xl font-bold text-blue-600">23</div>
+                    <div class="text-sm text-gray-600">รถยนต์</div>
+                </div>
+                <div class="bg-white rounded-3xl p-6 card-shadow text-center">
+                    <div class="text-3xl font-bold text-green-600">15</div>
+                    <div class="text-sm text-gray-600">รถจักรยานยนต์</div>
+                </div>
+                <div class="bg-white rounded-3xl p-6 card-shadow text-center">
+                    <div class="text-3xl font-bold text-purple-600">18</div>
+                    <div class="text-sm text-gray-600">มีสติกเกอร์</div>
+                </div>
+                <div class="bg-white rounded-3xl p-6 card-shadow text-center">
+                    <div class="text-3xl font-bold text-red-600">20</div>
+                    <div class="text-sm text-gray-600">ไม่มีสติกเกอร์</div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4">สถิติรายโซน</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-2xl">
+                        <span>ลานจอดชั้น 1</span>
+                        <span class="font-semibold text-blue-600">15 คัน</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-2xl">
+                        <span>ประตูหน้า</span>
+                        <span class="font-semibold text-green-600">12 คัน</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-2xl">
+                        <span>ประตูหลัง</span>
+                        <span class="font-semibold text-purple-600">11 คัน</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Section -->
+        <div id="adminSection" class="hidden">
+            <!-- Back Button Header -->
+            <div class="bg-white border-b border-gray-200 p-4 flex items-center">
+                <button onclick="backToMainMenu()" class="mr-4 p-2 rounded-full hover:bg-gray-100 touch-target btn-mobile">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800">จัดการระบบ</h2>
+                    <p class="text-sm text-gray-500">ตั้งค่าและจัดการข้อมูลระบบ</p>
+                </div>
+            </div>
+            
+            <div class="p-4 space-y-4 bottom-mobile scroll-container">
+                <div class="bg-white rounded-3xl p-6 card-shadow">
+                    <h3 class="text-lg font-semibold mb-4">จัดการโซน</h3>
+                
+                <div class="space-y-4">
+                    <div class="flex space-x-3">
+                        <input type="text" id="newZoneName" placeholder="ชื่อโซนใหม่" class="flex-1 p-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button onclick="addZone()" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                            เพิ่ม
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-2" id="adminZonesList">
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-2xl">
+                            <span>ลานจอดชั้น 1</span>
+                            <button onclick="deleteZone('zone1')" class="text-red-500 hover:bg-red-50 p-2 rounded-xl">
+                                🗑️
+                            </button>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-2xl">
+                            <span>ประตูหน้า</span>
+                            <button onclick="deleteZone('zone2')" class="text-red-500 hover:bg-red-50 p-2 rounded-xl">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 card-shadow">
+                <h3 class="text-lg font-semibold mb-4">ส่งออกข้อมูล</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="exportData('excel')" class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-4 rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                        📊 Excel
+                    </button>
+                    <button onclick="exportData('pdf')" class="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-4 rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all">
+                        📄 PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Modal -->
+    <div id="photoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">ภาพถ่าย</h3>
+                <button onclick="closePhotoModal()" class="text-gray-500 hover:text-gray-700">
+                    ✕
+                </button>
+            </div>
+            <div class="bg-gray-100 rounded-2xl h-64 flex items-center justify-center">
+                <div class="text-center">
+                    <svg class="w-16 h-16 text-gray-400 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                    </svg>
+                    <p class="text-gray-500">ภาพตัวอย่าง</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let selectedVehicleType = null;
+        let hasSticker = null;
+        let vehicleRecords = [];
+        let zones = [];
+        
+        // Google Apps Script functions
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('show');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('show');
+        }
+
+        function login(role) {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
+                return;
+            }
+
+            showLoading();
+            
+            // Call Google Apps Script function to verify login
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    hideLoading();
+                    if (result.success) {
+                        currentUser = { role, username };
+                        document.getElementById('loginScreen').classList.add('hidden');
+                        document.getElementById('mainApp').classList.remove('hidden');
+                        document.getElementById('userRole').textContent = role === 'admin' ? 'ผู้ดูแลระบบ' : 'พนักงาน';
+                        
+                        if (role === 'admin') {
+                            document.getElementById('adminTab').classList.remove('hidden');
+                        }
+                        
+                        loadInitialData();
+                    } else {
+                        alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    hideLoading();
+                    alert('เกิดข้อผิดพลาด: ' + error.message);
+                })
+                .verifyLogin(username, password, role);
+        }
+        
+        function loadInitialData() {
+            showLoading();
+            
+            // Load zones and records from Google Sheets
+            google.script.run
+                .withSuccessHandler(function(data) {
+                    hideLoading();
+                    zones = data.zones || [];
+                    vehicleRecords = data.records || [];
+                    updateDashboard();
+                    updateZoneSelects();
+                })
+                .withFailureHandler(function(error) {
+                    hideLoading();
+                    alert('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error.message);
+                })
+                .getInitialData();
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function showMainSection(section) {
+            // Hide all screens
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('zoneSelection').classList.add('hidden');
+            document.querySelectorAll('[id$="Section"]').forEach(el => el.classList.add('hidden'));
+            
+            // Show selected section
+            document.getElementById(section + 'Section').classList.remove('hidden');
+            
+            // Load data for specific sections
+            if (section === 'stats') {
+                updateStatistics();
+            } else if (section === 'history') {
+                loadHistoryData();
+            }
+        }
+        
+        function showZoneSelection() {
+            // Hide dashboard and main menu
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.querySelectorAll('[id$="Section"]').forEach(el => el.classList.add('hidden'));
+            
+            // Show zone selection
+            document.getElementById('zoneSelection').classList.remove('hidden');
+            
+            // Populate zone cards
+            populateZoneCards();
+        }
+        
+        function showRecordForm(zoneId, zoneName) {
+            // Hide zone selection
+            document.getElementById('zoneSelection').classList.add('hidden');
+            
+            // Show record form
+            document.getElementById('recordSection').classList.remove('hidden');
+            
+            // Set selected zone
+            document.getElementById('selectedZoneId').value = zoneId;
+            document.getElementById('selectedZoneName').textContent = zoneName;
+        }
+        
+        function backToMainMenu() {
+            // Hide all sections
+            document.querySelectorAll('[id$="Section"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('zoneSelection').classList.add('hidden');
+            
+            // Show main menu
+            document.getElementById('mainMenu').classList.remove('hidden');
+        }
+        
+        function backToMainMenu() {
+            // Hide all sections and screens
+            document.querySelectorAll('[id$="Section"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('zoneSelection').classList.add('hidden');
+            document.getElementById('recordSection').classList.add('hidden');
+            
+            // Show main menu
+            document.getElementById('mainMenu').classList.remove('hidden');
+        }
+        
+        function backToZoneSelection() {
+            // Hide record form
+            document.getElementById('recordSection').classList.add('hidden');
+            
+            // Show zone selection
+            document.getElementById('zoneSelection').classList.remove('hidden');
+            
+            // Reset form
+            resetRecordForm();
+        }
+        
+        function populateZoneCards() {
+            const zoneCards = document.getElementById('zoneCards');
+            zoneCards.innerHTML = '';
+            
+            zones.forEach(zone => {
+                const zoneCard = document.createElement('div');
+                zoneCard.className = 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-4 rounded-3xl shadow-lg hover:shadow-xl cursor-pointer btn-mobile max-w-sm mx-auto transition-all';
+                zoneCard.onclick = () => showRecordForm(zone.id, zone.name);
+                
+                zoneCard.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="text-2xl mb-1">🏢</div>
+                            <div class="font-semibold text-base text-responsive">${zone.name}</div>
+                            <div class="text-xs opacity-80">แตะเพื่อเริ่มบันทึก</div>
+                        </div>
+                        <div class="text-2xl opacity-60 touch-target flex items-center justify-center">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                    </div>
+                `;
+                
+                zoneCards.appendChild(zoneCard);
+            });
+        }
+
+        function selectVehicleType(type) {
+            selectedVehicleType = type;
+            document.querySelectorAll('.vehicle-type-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'bg-blue-50');
+            });
+            event.target.classList.add('border-blue-500', 'bg-blue-50');
+        }
+
+        function selectSticker(sticker) {
+            hasSticker = sticker;
+            document.querySelectorAll('.sticker-btn').forEach(btn => {
+                btn.classList.remove('ring-4', 'ring-white', 'ring-opacity-50');
+            });
+            event.target.classList.add('ring-4', 'ring-white', 'ring-opacity-50');
+        }
+
+        function takePhoto() {
+            // Simulate camera functionality
+            alert('📷 ฟีเจอร์กล้องจะทำงานจริงเมื่อใช้งานบนอุปกรณ์มือถือ');
+            document.querySelector('.camera-preview').innerHTML = `
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-green-500 rounded-full mx-auto mb-2 flex items-center justify-center">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/>
+                        </svg>
+                    </div>
+                    <p class="text-green-600 font-medium">ถ่ายภาพเรียบร้อย</p>
+                </div>
+            `;
+        }
+
+        function saveRecord() {
+            if (!selectedVehicleType || hasSticker === null) {
+                alert('กรุณาเลือกประเภทรถและสถานะสติกเกอร์');
+                return;
+            }
+
+            const selectedZoneId = document.getElementById('selectedZoneId').value;
+            if (!selectedZoneId) {
+                alert('ไม่พบข้อมูลโซนที่เลือก');
+                return;
+            }
+
+            const record = {
+                zone: selectedZoneId,
+                vehicleType: selectedVehicleType,
+                hasSticker: hasSticker,
+                notes: document.getElementById('notes').value,
+                timestamp: new Date().toISOString(),
+                user: currentUser.username
+            };
+
+            showLoading();
+            
+            // Save to Google Sheets
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    hideLoading();
+                    if (result.success) {
+                        vehicleRecords.push(result.record);
+                        
+                        // Reset form but stay in the same zone
+                        resetRecordForm();
+                        
+                        alert('✅ บันทึกข้อมูลเรียบร้อย\nสามารถบันทึกรถคันต่อไปในโซนเดียวกันได้');
+                        updateDashboard();
+                    } else {
+                        alert('เกิดข้อผิดพลาดในการบันทึก');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    hideLoading();
+                    alert('เกิดข้อผิดพลาด: ' + error.message);
+                })
+                .saveVehicleRecord(record);
+        }
+        
+        function resetRecordForm() {
+            selectedVehicleType = null;
+            hasSticker = null;
+            document.getElementById('notes').value = '';
+            document.querySelectorAll('.vehicle-type-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'bg-blue-50');
+            });
+            document.querySelectorAll('.sticker-btn').forEach(btn => {
+                btn.classList.remove('ring-4', 'ring-white', 'ring-opacity-50');
+            });
+            
+            const cameraPreview = document.querySelector('.camera-preview');
+            if (cameraPreview) {
+                cameraPreview.innerHTML = `
+                    <div class="text-center">
+                        <svg class="w-12 h-12 text-gray-400 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
+                        </svg>
+                        <p class="text-gray-500">แตะเพื่อถ่ายภาพ</p>
+                    </div>
+                `;
+            }
+        }
+
+        function updateDashboard() {
+            const totalCars = vehicleRecords.length;
+            const stickerCars = vehicleRecords.filter(r => r.hasSticker).length;
+            
+            document.getElementById('totalCars').textContent = totalCars;
+            document.getElementById('stickerCars').textContent = stickerCars;
+        }
+        
+        function updateStatistics() {
+            // Calculate vehicle type statistics
+            const carCount = vehicleRecords.filter(r => r.vehicleType === 'car').length;
+            const motorcycleCount = vehicleRecords.filter(r => r.vehicleType === 'motorcycle').length;
+            const deliveryCount = vehicleRecords.filter(r => r.vehicleType === 'delivery').length;
+            const foodCount = vehicleRecords.filter(r => r.vehicleType === 'food').length;
+            
+            const stickerCount = vehicleRecords.filter(r => r.hasSticker).length;
+            const noStickerCount = vehicleRecords.filter(r => !r.hasSticker).length;
+            
+            // Update vehicle type stats
+            const statsGrid = document.querySelector('#statsSection .grid');
+            if (statsGrid) {
+                statsGrid.innerHTML = `
+                    <div class="bg-white rounded-3xl p-6 card-shadow text-center">
+                        <div class="text-3xl font-bold text-gray-800">${carCount}</div>
+                        <div class="text-sm text-gray-600">รถยนต์</div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-6 card-shadow text-center">
+                        <div class="text-3xl font-bold text-black">${motorcycleCount}</div>
+                        <div class="text-sm text-gray-600">รถจักรยานยนต์</div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-6 card-shadow text-center">
+                        <div class="text-3xl font-bold text-red-600">${stickerCount}</div>
+                        <div class="text-sm text-gray-600">มีสติกเกอร์</div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-6 card-shadow text-center">
+                        <div class="text-3xl font-bold text-red-800">${noStickerCount}</div>
+                        <div class="text-sm text-gray-600">ไม่มีสติกเกอร์</div>
+                    </div>
+                `;
+            }
+            
+            // Calculate zone statistics
+            const zoneStats = {};
+            zones.forEach(zone => {
+                zoneStats[zone.id] = {
+                    name: zone.name,
+                    count: vehicleRecords.filter(r => r.zone === zone.id).length
+                };
+            });
+            
+            // Update zone statistics
+            const zoneStatsContainer = document.querySelector('#statsSection .space-y-3');
+            if (zoneStatsContainer) {
+                zoneStatsContainer.innerHTML = '';
+                
+                Object.values(zoneStats).forEach(zoneStat => {
+                    const zoneDiv = document.createElement('div');
+                    zoneDiv.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-2xl';
+                    zoneDiv.innerHTML = `
+                        <span>${zoneStat.name}</span>
+                        <span class="font-semibold text-red-600">${zoneStat.count} คัน</span>
+                    `;
+                    zoneStatsContainer.appendChild(zoneDiv);
+                });
+                
+                if (Object.keys(zoneStats).length === 0) {
+                    zoneStatsContainer.innerHTML = '<p class="text-center text-gray-500 py-4">ยังไม่มีข้อมูลโซน</p>';
+                }
+            }
+        }
+        
+        function loadHistoryData() {
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('historyDate').value = today;
+            
+            // Filter and show today's records
+            const todayRecords = vehicleRecords.filter(record => {
+                const recordDate = new Date(record.timestamp).toISOString().split('T')[0];
+                return recordDate === today;
+            });
+            
+            updateHistoryList(todayRecords);
+        }
+
+        function filterHistory() {
+            // Simulate history filtering
+            console.log('Filtering history for date:', document.getElementById('historyDate').value);
+        }
+
+        function viewPhoto(recordId) {
+            document.getElementById('photoModal').classList.remove('hidden');
+        }
+
+        function closePhotoModal() {
+            document.getElementById('photoModal').classList.add('hidden');
+        }
+
+        function addZone() {
+            const zoneName = document.getElementById('newZoneName').value;
+            if (!zoneName) {
+                alert('กรุณากรอกชื่อโซน');
+                return;
+            }
+
+            showLoading();
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    hideLoading();
+                    if (result.success) {
+                        zones.push(result.zone);
+                        document.getElementById('newZoneName').value = '';
+                        alert('✅ เพิ่มโซนเรียบร้อย');
+                        updateZoneSelects();
+                        updateAdminZonesList();
+                    } else {
+                        alert('เกิดข้อผิดพลาดในการเพิ่มโซน');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    hideLoading();
+                    alert('เกิดข้อผิดพลาด: ' + error.message);
+                })
+                .addNewZone(zoneName);
+        }
+
+        function deleteZone(zoneId) {
+            if (confirm('ต้องการลบโซนนี้หรือไม่?')) {
+                showLoading();
+                
+                google.script.run
+                    .withSuccessHandler(function(result) {
+                        hideLoading();
+                        if (result.success) {
+                            zones = zones.filter(z => z.id !== zoneId);
+                            alert('✅ ลบโซนเรียบร้อย');
+                            updateZoneSelects();
+                            updateAdminZonesList();
+                        } else {
+                            alert('เกิดข้อผิดพลาดในการลบโซน');
+                        }
+                    })
+                    .withFailureHandler(function(error) {
+                        hideLoading();
+                        alert('เกิดข้อผิดพลาด: ' + error.message);
+                    })
+                    .deleteZone(zoneId);
+            }
+        }
+        
+        function updateZoneSelects() {
+            // This function is no longer needed as we use zone selection screen
+            // But keeping it for compatibility with admin functions
+        }
+        
+        function updateAdminZonesList() {
+            const adminZonesList = document.getElementById('adminZonesList');
+            adminZonesList.innerHTML = '';
+            
+            zones.forEach(zone => {
+                const zoneDiv = document.createElement('div');
+                zoneDiv.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-2xl';
+                zoneDiv.innerHTML = `
+                    <span>${zone.name}</span>
+                    <button onclick="deleteZone('${zone.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded-xl">
+                        🗑️
+                    </button>
+                `;
+                adminZonesList.appendChild(zoneDiv);
+            });
+        }
+
+        function exportData(format) {
+            showLoading();
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    hideLoading();
+                    if (result.success) {
+                        // Create download link
+                        const link = document.createElement('a');
+                        link.href = result.url;
+                        link.download = result.filename;
+                        link.click();
+                        alert(`📊 ส่งออกข้อมูลเป็น ${format.toUpperCase()} เรียบร้อย`);
+                    } else {
+                        alert('เกิดข้อผิดพลาดในการส่งออกข้อมูล');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    hideLoading();
+                    alert('เกิดข้อผิดพลาด: ' + error.message);
+                })
+                .exportDataToFile(format);
+        }
+        
+        function filterHistory() {
+            const selectedDate = document.getElementById('historyDate').value;
+            showLoading();
+            
+            google.script.run
+                .withSuccessHandler(function(records) {
+                    hideLoading();
+                    updateHistoryList(records);
+                })
+                .withFailureHandler(function(error) {
+                    hideLoading();
+                    alert('เกิดข้อผิดพลาด: ' + error.message);
+                })
+                .getRecordsByDate(selectedDate);
+        }
+        
+        function updateHistoryList(records) {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            if (records.length === 0) {
+                historyList.innerHTML = '<p class="text-center text-gray-500 py-8">ไม่มีข้อมูลในวันที่เลือก</p>';
+                return;
+            }
+            
+            records.forEach(record => {
+                const vehicleEmoji = getVehicleEmoji(record.vehicleType);
+                const stickerText = record.hasSticker ? 'มีสติกเกอร์' : 'ไม่มีสติกเกอร์';
+                const zoneName = zones.find(z => z.id === record.zone)?.name || record.zone;
+                const time = new Date(record.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                
+                const recordDiv = document.createElement('div');
+                recordDiv.className = 'flex items-center space-x-4 p-4 bg-gray-50 rounded-2xl';
+                recordDiv.innerHTML = `
+                    <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                        ${vehicleEmoji}
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-medium">${getVehicleTypeName(record.vehicleType)} - ${stickerText}</div>
+                        <div class="text-sm text-gray-500">${zoneName} • ${time} • โดย ${record.user}</div>
+                    </div>
+                    <button onclick="viewPhoto('${record.id}')" class="bg-blue-500 text-white p-2 rounded-xl">
+                        📷
+                    </button>
+                `;
+                historyList.appendChild(recordDiv);
+            });
+        }
+        
+        function getVehicleEmoji(type) {
+            const emojis = {
+                'car': '🚗',
+                'motorcycle': '🏍️',
+                'delivery': '🚚',
+                'food': '🍕'
+            };
+            return emojis[type] || '🚗';
+        }
+        
+        function getVehicleTypeName(type) {
+            const names = {
+                'car': 'รถยนต์',
+                'motorcycle': 'รถจักรยานยนต์',
+                'delivery': 'รถส่งของ',
+                'food': 'รถส่งอาหาร'
+            };
+            return names[type] || 'รถยนต์';
+        }
+
+        // Initialize date input to today and show main menu
+        window.onload = function() {
+            document.getElementById('historyDate').valueAsDate = new Date();
+            
+            // Initialize sample data for demo
+            initializeSampleData();
+            
+            // Show main menu by default when app loads
+            document.getElementById('mainMenu').classList.remove('hidden');
+        };
+        
+        function initializeSampleData() {
+            // Sample zones
+            zones = [
+                { id: 'zone1', name: 'ลานจอดชั้น 1' },
+                { id: 'zone2', name: 'ประตูหน้า' },
+                { id: 'zone3', name: 'ประตูหลัง' }
+            ];
+            
+            // Sample vehicle records
+            const today = new Date();
+            vehicleRecords = [
+                {
+                    id: '1',
+                    zone: 'zone1',
+                    vehicleType: 'car',
+                    hasSticker: true,
+                    notes: 'รถสีขาว',
+                    timestamp: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+                    user: 'admin'
+                },
+                {
+                    id: '2',
+                    zone: 'zone2',
+                    vehicleType: 'food',
+                    hasSticker: false,
+                    notes: 'รถส่งอาหาร Grab',
+                    timestamp: new Date(today.getTime() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+                    user: 'พนักงาน'
+                },
+                {
+                    id: '3',
+                    zone: 'zone1',
+                    vehicleType: 'motorcycle',
+                    hasSticker: true,
+                    notes: '',
+                    timestamp: new Date(today.getTime() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
+                    user: 'admin'
+                },
+                {
+                    id: '4',
+                    zone: 'zone3',
+                    vehicleType: 'delivery',
+                    hasSticker: false,
+                    notes: 'รถขนส่งสินค้า',
+                    timestamp: new Date(today.getTime() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
+                    user: 'พนักงาน'
+                }
+            ];
+            
+            // Update dashboard with sample data
+            updateDashboard();
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97fec2b713e7d32d',t:'MTc1ODAwODg5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
